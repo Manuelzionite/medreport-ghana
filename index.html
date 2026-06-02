@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedError Reporter — Multi-Facility Medication Error Documentation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-primary: #ffffff; --bg-secondary: #f5f5f3; --bg-tertiary: #eeede8;
+  --text-primary: #1a1a18; --text-secondary: #5f5e5a; --text-tertiary: #888780;
+  --border: rgba(0,0,0,0.13); --border-md: rgba(0,0,0,0.22);
+  --radius-md: 8px; --radius-lg: 12px;
+  --success-bg: #E1F5EE; --success-text: #0F6E56;
+  --danger-bg: #FCEBEB; --danger-text: #A32D2D;
+  --warning-bg: #FAEEDA; --warning-text: #854F0B;
+  --info-bg: #E6F1FB; --info-text: #185FA5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1e1e1c; --bg-secondary: #2a2a28; --bg-tertiary: #161614;
+    --text-primary: #f0ede6; --text-secondary: #b4b2a9; --text-tertiary: #888780;
+    --border: rgba(255,255,255,0.12); --border-md: rgba(255,255,255,0.22);
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-tertiary); color: var(--text-primary); font-size: 14px; }
+.app { display: flex; height: 100vh; }
+.sidebar { width: 210px; min-width: 210px; background: var(--bg-primary); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; padding: 16px 0; overflow-y: auto; }
+.logo { padding: 0 16px 16px; border-bottom: 0.5px solid var(--border); margin-bottom: 12px; }
+.logo-title { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
+.logo-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: background 0.1s; }
+.nav-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.nav-item.active { background: #E1F5EE; color: #0F6E56; font-weight: 500; }
+.nav-item i { font-size: 16px; }
+.nav-section { font-size: 10px; font-weight: 500; color: var(--text-tertiary); padding: 12px 16px 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+.main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.topbar { background: var(--bg-primary); border-bottom: 0.5px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.topbar-title { font-size: 15px; font-weight: 500; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.badge { font-size: 11px; padding: 3px 8px; border-radius: var(--radius-md); font-weight: 500; }
+.badge-success { background: var(--success-bg); color: var(--success-text); }
+.badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 13px; border-radius: var(--radius-md); cursor: pointer; border: 0.5px solid var(--border-md); background: var(--bg-primary); color: var(--text-primary); font-family: inherit; transition: background 0.1s; }
+.btn:hover { background: var(--bg-secondary); }
+.btn-primary { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+.btn-primary:hover { background: #0F6E56; border-color: #0F6E56; }
+.content { padding: 20px 24px; flex: 1; }
+.section { display: none; }
+.section.active { display: block; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.metric-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 14px 16px; }
+.metric-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.metric-value { font-size: 24px; font-weight: 500; }
+.metric-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.trend-up { color: #A32D2D; } .trend-down { color: #0F6E56; }
+.cards-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-title { font-size: 13px; font-weight: 500; }
+.chart-wrap { position: relative; width: 100%; height: 200px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-align: left; padding: 6px 10px; border-bottom: 0.5px solid var(--border); }
+td { padding: 8px 10px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-secondary); }
+.sev-pill { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
+.sev-1 { background: #FCEBEB; color: #A32D2D; } .sev-2 { background: #FAEEDA; color: #854F0B; }
+.sev-3 { background: #E1F5EE; color: #0F6E56; } .sev-4 { background: #E6F1FB; color: #185FA5; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+label span { color: #A32D2D; }
+input, select, textarea { font-size: 13px; font-family: inherit; padding: 8px 10px; border: 0.5px solid var(--border-md); border-radius: var(--radius-md); background: var(--bg-primary); color: var(--text-primary); width: 100%; outline: none; transition: border-color 0.15s; }
+input:focus, select:focus, textarea:focus { border-color: #1D9E75; box-shadow: 0 0 0 2px rgba(29,158,117,0.15); }
+textarea { resize: vertical; min-height: 80px; }
+.form-section-title { font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; grid-column: 1 / -1; margin-top: 8px; padding-top: 14px; border-top: 0.5px solid var(--border); }
+.form-actions { display: flex; gap: 10px; margin-top: 18px; align-items: center; flex-wrap: wrap; }
+.toast { display: none; align-items: center; gap: 8px; background: var(--success-bg); color: var(--success-text); font-size: 12px; padding: 8px 12px; border-radius: var(--radius-md); }
+.filter-bar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.filter-bar input, .filter-bar select { width: auto; flex: 1; min-width: 110px; max-width: 180px; }
+.log-actions { margin-left: auto; display: flex; gap: 8px; }
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.full-card { grid-column: 1 / -1; }
+.fac-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.fac-row { font-size: 12px; color: var(--text-secondary); line-height: 2; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--text-secondary); }
+.ldot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+.empty { text-align: center; padding: 40px; color: var(--text-tertiary); font-size: 13px; }
+.link { color: #1D9E75; cursor: pointer; font-size: 12px; text-decoration: none; }
+@media (max-width: 700px) {
+  .sidebar { width: 48px; min-width: 48px; }
+  .logo, .nav-section, .nav-item span { display: none; }
+  .nav-item { justify-content: center; padding: 12px; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .cards-row, .analytics-grid, .fac-grid { grid-template-columns: 1fr; }
+  .full-card { grid-column: 1; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-title">MedError<br>Reporter</div>
+      <div class="logo-sub">Multi-facility v1.0</div>
+    </div>
+    <span class="nav-section">Main</span>
+    <button class="nav-item active" onclick="showSection('dashboard',this)"><i class="ti ti-layout-dashboard"></i> <span>Dashboard</span></button>
+    <button class="nav-item" onclick="showSection('report',this)"><i class="ti ti-plus"></i> <span>Report Error</span></button>
+    <button class="nav-item" onclick="showSection('log',this)"><i class="ti ti-list"></i> <span>Error Log</span></button>
+    <span class="nav-section">Analysis</span>
+    <button class="nav-item" onclick="showSection('analytics',this)"><i class="ti ti-chart-bar"></i> <span>Analytics</span></button>
+    <span class="nav-section">System</span>
+    <button class="nav-item" onclick="showSection('facilities',this)"><i class="ti ti-building-hospital"></i> <span>Facilities</span></button>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <div class="topbar-right">
+        <select style="font-size:12px;padding:5px 8px;width:auto;" id="fac-filter" onchange="filterFacility()">
+          <option value="">All Facilities</option>
+          <option>KATH — Kumasi</option><option>KBTH — Accra</option>
+          <option>CRH — Cape Coast</option><option>TTH — Tamale</option>
+        </select>
+        <button class="btn btn-primary" onclick="showSection('report',document.querySelectorAll('.nav-item')[1])"><i class="ti ti-plus"></i> New Report</button>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="content section active" id="section-dashboard">
+      <div class="metrics">
+        <div class="metric-card"><div class="metric-label">Total Errors (30d)</div><div class="metric-value" id="m-total">47</div><div class="metric-sub trend-up"><i class="ti ti-arrow-up" style="font-size:10px"></i> 12% vs last month</div></div>
+        <div class="metric-card"><div class="metric-label">Critical / Serious</div><div class="metric-value" id="m-critical" style="color:#A32D2D">9</div><div class="metric-sub trend-down"><i class="ti ti-arrow-down" style="font-size:10px"></i> 3% vs last month</div></div>
+        <div class="metric-card"><div class="metric-label">Facilities Reporting</div><div class="metric-value">4</div><div class="metric-sub" style="color:var(--text-tertiary)">Active this month</div></div>
+        <div class="metric-card"><div class="metric-label">Near Miss</div><div class="metric-value" id="m-nearmiss">18</div><div class="metric-sub" style="color:var(--text-tertiary)">Intercepted before harm</div></div>
+      </div>
+      <div class="cards-row">
+        <div class="card"><div class="card-header"><span class="card-title">Errors by type (30d)</span></div><div class="chart-wrap"><canvas id="typeChart"></canvas></div></div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Severity distribution</span></div>
+          <div class="chart-wrap"><canvas id="sevChart"></canvas></div>
+          <div class="legend" style="justify-content:center;margin-top:8px;">
+            <span><span class="ldot" style="background:#E24B4A"></span>Critical 17%</span>
+            <span><span class="ldot" style="background:#EF9F27"></span>Serious 19%</span>
+            <span><span class="ldot" style="background:#1D9E75"></span>Minor 26%</span>
+            <span><span class="ldot" style="background:#378ADD"></span>Near miss 38%</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent reports</span><a class="link" onclick="showSection('log',document.querySelectorAll('.nav-item')[2])">View all <i class="ti ti-arrow-right" style="font-size:11px"></i></a></div>
+        <div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Date</th><th>Facility</th><th>Drug</th><th>Error type</th><th>Severity</th></tr></thead><tbody id="recent-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Report Error -->
+    <div class="content section" id="section-report">
+      <div class="card">
+        <div class="card-header"><span class="card-title">New medication error report</span></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Facility <span>*</span></label><select id="f-facility"><option value="">Select facility</option><option>KATH — Kumasi</option><option>KBTH — Accra</option><option>CRH — Cape Coast</option><option>TTH — Tamale</option></select></div>
+          <div class="form-group"><label>Ward / Unit <span>*</span></label><select id="f-ward"><option value="">Select ward</option><option>Medical Ward</option><option>Surgical Ward</option><option>ICU / CCU</option><option>Paediatrics</option><option>Maternity</option><option>Emergency / A&E</option><option>Oncology</option><option>Pharmacy</option></select></div>
+          <div class="form-group"><label>Date of error <span>*</span></label><input type="date" id="f-date"></div>
+          <div class="form-group"><label>Time of error</label><input type="time" id="f-time"></div>
+          <div class="form-section-title">Drug information</div>
+          <div class="form-group"><label>Drug name <span>*</span></label><input type="text" id="f-drug" placeholder="e.g. Metformin 500mg"></div>
+          <div class="form-group"><label>Prescribed dose</label><input type="text" id="f-prescribed" placeholder="e.g. 500mg BD"></div>
+          <div class="form-group"><label>Actual dose given</label><input type="text" id="f-actual" placeholder="e.g. 1000mg BD"></div>
+          <div class="form-group"><label>Route</label><select id="f-route"><option value="">Select route</option><option>Oral (PO)</option><option>Intravenous (IV)</option><option>Intramuscular (IM)</option><option>Subcutaneous (SC)</option><option>Topical</option><option>Inhalation</option><option>Other</option></select></div>
+          <div class="form-section-title">Error classification</div>
+          <div class="form-group"><label>Error type <span>*</span></label><select id="f-type"><option value="">Select type</option><option>Wrong dose</option><option>Wrong drug</option><option>Wrong patient</option><option>Wrong route</option><option>Wrong time</option><option>Omission</option><option>Extra dose</option><option>Unauthorized drug</option><option>Deteriorated drug</option><option>Other</option></select></div>
+          <div class="form-group"><label>Severity <span>*</span></label><select id="f-severity"><option value="">Select severity</option><option>Near miss (intercepted)</option><option>Minor (no harm)</option><option>Serious (temporary harm)</option><option>Critical (permanent harm / death)</option></select></div>
+          <div class="form-group"><label>Stage of error</label><select id="f-stage"><option value="">Select stage</option><option>Prescribing</option><option>Transcription</option><option>Dispensing</option><option>Administration</option><option>Monitoring</option></select></div>
+          <div class="form-group"><label>Intercepted by</label><select id="f-intercepted"><option value="">N/A</option><option>Pharmacist</option><option>Nurse</option><option>Physician</option><option>Patient / Family</option></select></div>
+          <div class="form-section-title">Narrative</div>
+          <div class="form-group full"><label>Description of error <span>*</span></label><textarea id="f-description" placeholder="Describe what happened, contributing factors, and immediate actions taken..."></textarea></div>
+          <div class="form-group full"><label>Corrective action taken</label><textarea id="f-action" placeholder="What was done to correct the error or prevent recurrence?" style="min-height:60px;"></textarea></div>
+          <div class="form-group"><label>Reporter role</label><select id="f-reporter"><option>Pharmacist</option><option>Nurse</option><option>Physician</option><option>Other</option></select></div>
+          <div class="form-group"><label>Patient outcome</label><select id="f-outcome"><option value="">Select outcome</option><option>No harm</option><option>Required monitoring</option><option>Required treatment</option><option>Prolonged hospital stay</option><option>Permanent harm</option><option>Death</option></select></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="submitReport()"><i class="ti ti-send"></i> Submit report</button>
+          <button class="btn" onclick="clearForm()"><i class="ti ti-x"></i> Clear</button>
+          <div class="toast" id="success-toast"><i class="ti ti-check"></i> Report submitted successfully</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Log -->
+    <div class="content section" id="section-log">
+      <div class="filter-bar">
+        <input type="text" id="log-search" placeholder="Search drug, facility..." oninput="renderLog()" style="max-width:200px;">
+        <select id="log-fac" onchange="renderLog()"><option value="">All facilities</option><option>KATH — Kumasi</option><option>KBTH — Accra</option><option>CRH — Cape Coast</option><option>TTH — Tamale</option></select>
+        <select id="log-sev" onchange="renderLog()"><option value="">All severities</option><option>Near miss (intercepted)</option><option>Minor (no harm)</option><option>Serious (temporary harm)</option><option>Critical (permanent harm / death)</option></select>
+        <select id="log-type" onchange="renderLog()"><option value="">All types</option><option>Wrong dose</option><option>Wrong drug</option><option>Wrong patient</option><option>Wrong route</option><option>Wrong time</option><option>Omission</option></select>
+        <div class="log-actions">
+          <button class="btn" onclick="exportCSV()"><i class="ti ti-download"></i> Export CSV</button>
+        </div>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table><thead><tr><th>ID</th><th>Date</th><th>Facility</th><th>Ward</th><th>Drug</th><th>Type</th><th>Severity</th><th>Reporter</th><th>Stage</th></tr></thead><tbody id="log-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="content section" id="section-analytics">
+      <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
+        <div class="metric-card"><div class="metric-label">Most common error</div><div class="metric-value" style="font-size:16px;margin-top:4px;">Wrong dose</div><div class="metric-sub">30% of all reports</div></div>
+        <div class="metric-card"><div class="metric-label">Highest risk ward</div><div class="metric-value" style="font-size:16px;margin-top:4px;">ICU / CCU</div><div class="metric-sub">22% of critical errors</div></div>
+        <div class="metric-card"><div class="metric-label">Near miss rate</div><div class="metric-value">38%</div><div class="metric-sub trend-up">Pharmacists intercepting most</div></div>
+      </div>
+      <div class="analytics-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Monthly trend by facility</span></div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="trendChart"></canvas></div>
+          <div class="legend"><span><span class="ldot" style="background:#1D9E75"></span>KATH</span><span><span class="ldot" style="background:#378ADD"></span>KBTH</span><span><span class="ldot" style="background:#EF9F27"></span>CRH</span><span><span class="ldot" style="background:#E24B4A"></span>TTH</span></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Errors by stage</span></div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="stageChart"></canvas></div>
+        </div>
+        <div class="card full-card">
+          <div class="card-header"><span class="card-title">Errors by ward (all facilities)</span></div>
+          <div class="chart-wrap" style="height:180px;"><canvas id="wardChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Facilities -->
+    <div class="content section" id="section-facilities">
+      <div class="fac-grid">
+        <div class="card"><div class="card-header"><span class="card-title"><i class="ti ti-building-hospital" style="font-size:14px;margin-right:6px;"></i>KATH — Kumasi</span><span class="badge badge-success">Active</span></div><div class="fac-row"><div>Reports this month: <strong>18</strong></div><div>Critical errors: <strong style="color:#A32D2D">3</strong></div><div>Near misses: <strong style="color:#0F6E56">7</strong></div><div>Top error: Wrong dose</div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title"><i class="ti ti-building-hospital" style="font-size:14px;margin-right:6px;"></i>KBTH — Accra</span><span class="badge badge-success">Active</span></div><div class="fac-row"><div>Reports this month: <strong>14</strong></div><div>Critical errors: <strong style="color:#A32D2D">4</strong></div><div>Near misses: <strong style="color:#0F6E56">5</strong></div><div>Top error: Omission</div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title"><i class="ti ti-building-hospital" style="font-size:14px;margin-right:6px;"></i>CRH — Cape Coast</span><span class="badge badge-warning">Moderate</span></div><div class="fac-row"><div>Reports this month: <strong>9</strong></div><div>Critical errors: <strong style="color:#A32D2D">1</strong></div><div>Near misses: <strong style="color:#0F6E56">4</strong></div><div>Top error: Wrong route</div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title"><i class="ti ti-building-hospital" style="font-size:14px;margin-right:6px;"></i>TTH — Tamale</span><span class="badge badge-success">Active</span></div><div class="fac-row"><div>Reports this month: <strong>6</strong></div><div>Critical errors: <strong style="color:#A32D2D">1</strong></div><div>Near misses: <strong style="color:#0F6E56">2</strong></div><div>Top error: Wrong drug</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+let errors = [
+  {id:'ME-001',date:'2026-05-28',facility:'KATH — Kumasi',ward:'ICU / CCU',drug:'Heparin 5000 IU',type:'Wrong dose',severity:'Critical (permanent harm / death)',reporter:'Pharmacist',stage:'Prescribing',description:'Ordered dose was 10x actual',action:'Dose corrected, patient monitored',outcome:'Required treatment'},
+  {id:'ME-002',date:'2026-05-27',facility:'KBTH — Accra',ward:'Medical Ward',drug:'Metformin 500mg',type:'Omission',severity:'Minor (no harm)',reporter:'Nurse',stage:'Administration',description:'Evening dose not given',action:'Dose given next morning',outcome:'No harm'},
+  {id:'ME-003',date:'2026-05-26',facility:'CRH — Cape Coast',ward:'Paediatrics',drug:'Paracetamol syrup',type:'Wrong dose',severity:'Near miss (intercepted)',reporter:'Pharmacist',stage:'Dispensing',description:'Adult dose nearly dispensed',action:'Corrected before administration',outcome:'No harm'},
+  {id:'ME-004',date:'2026-05-25',facility:'TTH — Tamale',ward:'Maternity',drug:'Oxytocin 10 IU',type:'Wrong route',severity:'Serious (temporary harm)',reporter:'Physician',stage:'Administration',description:'IV push instead of IM',action:'Monitored, stabilised',outcome:'Required monitoring'},
+  {id:'ME-005',date:'2026-05-24',facility:'KATH — Kumasi',ward:'Surgical Ward',drug:'Cefazolin 1g',type:'Wrong drug',severity:'Near miss (intercepted)',reporter:'Pharmacist',stage:'Dispensing',description:'Ceftriaxone nearly dispensed',action:'Corrected at dispensing',outcome:'No harm'},
+  {id:'ME-006',date:'2026-05-23',facility:'KBTH — Accra',ward:'Emergency / A&E',drug:'Morphine 10mg',type:'Wrong dose',severity:'Serious (temporary harm)',reporter:'Nurse',stage:'Administration',description:'Double dose administered',action:'Naloxone given, monitored',outcome:'Required treatment'},
+  {id:'ME-007',date:'2026-05-22',facility:'KATH — Kumasi',ward:'Oncology',drug:'Cyclophosphamide',type:'Omission',severity:'Serious (temporary harm)',reporter:'Pharmacist',stage:'Prescribing',description:'Dose frequency omitted',action:'Prescriber contacted',outcome:'No harm'},
+];
+
+const sevColor = s => s.includes('Critical')?'sev-1':s.includes('Serious')?'sev-2':s.includes('Near')?'sev-4':'sev-3';
+const sevShort = s => s.includes('Critical')?'Critical':s.includes('Serious')?'Serious':s.includes('Near')?'Near miss':'Minor';
+
+function renderRecent() {
+  document.getElementById('recent-tbody').innerHTML = errors.slice(0,5).map(e=>`<tr>
+    <td style="font-family:monospace;font-size:11px">${e.id}</td><td>${e.date}</td>
+    <td>${e.facility.split('—')[0].trim()}</td><td>${e.drug}</td><td>${e.type}</td>
+    <td><span class="sev-pill ${sevColor(e.severity)}">${sevShort(e.severity)}</span></td></tr>`).join('');
+}
+
+function renderLog() {
+  const s=document.getElementById('log-search').value.toLowerCase(),
+        f=document.getElementById('log-fac').value,
+        sv=document.getElementById('log-sev').value,
+        t=document.getElementById('log-type').value;
+  const filtered=errors.filter(e=>(!s||[e.drug,e.facility,e.type].join(' ').toLowerCase().includes(s))&&(!f||e.facility===f)&&(!sv||e.severity===sv)&&(!t||e.type===t));
+  const tb=document.getElementById('log-tbody');
+  if(!filtered.length){tb.innerHTML='<tr><td colspan="9" class="empty">No records match the current filters.</td></tr>';return;}
+  tb.innerHTML=filtered.map(e=>`<tr>
+    <td style="font-family:monospace;font-size:11px">${e.id}</td><td>${e.date}</td>
+    <td style="font-size:11px">${e.facility}</td><td>${e.ward}</td><td>${e.drug}</td><td>${e.type}</td>
+    <td><span class="sev-pill ${sevColor(e.severity)}">${sevShort(e.severity)}</span></td>
+    <td>${e.reporter}</td><td>${e.stage}</td></tr>`).join('');
+}
+
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  btn.classList.add('active');
+  const titles={dashboard:'Dashboard',report:'Report error',log:'Error log',analytics:'Analytics',facilities:'Facilities'};
+  document.getElementById('page-title').textContent=titles[id]||id;
+  if(id==='log') renderLog();
+}
+
+function submitReport(){
+  const req=['f-facility','f-ward','f-date','f-drug','f-type','f-severity','f-description'];
+  let ok=true;
+  req.forEach(id=>{const el=document.getElementById(id);if(!el.value.trim()){el.style.borderColor='#A32D2D';ok=false;}else{el.style.borderColor='';}});
+  if(!ok) return;
+  const nid='ME-'+String(errors.length+1).padStart(3,'0');
+  errors.unshift({id:nid,date:document.getElementById('f-date').value,facility:document.getElementById('f-facility').value,ward:document.getElementById('f-ward').value,drug:document.getElementById('f-drug').value,type:document.getElementById('f-type').value,severity:document.getElementById('f-severity').value,reporter:document.getElementById('f-reporter').value,stage:document.getElementById('f-stage').value||'Unknown',description:document.getElementById('f-description').value,action:document.getElementById('f-action').value,outcome:document.getElementById('f-outcome').value});
+  const t=document.getElementById('success-toast');
+  t.style.display='flex'; setTimeout(()=>{t.style.display='none';},3000);
+  clearForm(); renderRecent();
+  document.getElementById('m-total').textContent=errors.length+27;
+}
+
+function clearForm(){
+  ['f-facility','f-ward','f-date','f-time','f-drug','f-prescribed','f-actual','f-route','f-type','f-severity','f-stage','f-intercepted','f-reporter','f-outcome'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.style.borderColor='';}});
+  ['f-description','f-action'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
+function exportCSV(){
+  const hdrs=['ID','Date','Facility','Ward','Drug','Type','Severity','Reporter','Stage','Description','Action','Outcome'];
+  const rows=errors.map(e=>[e.id,e.date,e.facility,e.ward,e.drug,e.type,e.severity,e.reporter,e.stage,`"${e.description}"`,`"${e.action}"`,e.outcome].join(','));
+  const csv=[hdrs.join(','),...rows].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='medication_errors.csv';a.click();
+}
+
+function filterFacility(){document.getElementById('log-fac').value=document.getElementById('fac-filter').value;renderLog();}
+
+renderRecent(); renderLog();
+
+new Chart(document.getElementById('typeChart'),{type:'bar',data:{labels:['Wrong dose','Wrong drug','Omission','Wrong route','Wrong time'],datasets:[{label:'Count',data:[14,10,9,7,7],backgroundColor:['#1D9E75','#378ADD','#EF9F27','#E24B4A','#7F77DD'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{stepSize:5}}}}});
+new Chart(document.getElementById('sevChart'),{type:'doughnut',data:{labels:['Critical','Serious','Minor','Near miss'],datasets:[{data:[17,19,26,38],backgroundColor:['#E24B4A','#EF9F27','#1D9E75','#378ADD'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}});
+new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{label:'KATH',data:[12,15,11,18,14,18],borderColor:'#1D9E75',tension:0.4,fill:false,pointRadius:3},{label:'KBTH',data:[8,10,13,9,12,14],borderColor:'#378ADD',tension:0.4,fill:false,pointRadius:3},{label:'CRH',data:[4,6,5,8,7,9],borderColor:'#EF9F27',tension:0.4,fill:false,pointRadius:3},{label:'TTH',data:[3,4,5,4,6,6],borderColor:'#E24B4A',tension:0.4,fill:false,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+new Chart(document.getElementById('stageChart'),{type:'bar',data:{labels:['Administration','Dispensing','Prescribing','Transcription','Monitoring'],datasets:[{label:'Errors',data:[40,28,20,8,4],backgroundColor:'#1D9E75',borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{display:false}},y:{grid:{display:false}}}}});
+new Chart(document.getElementById('wardChart'),{type:'bar',data:{labels:['Medical','ICU / CCU','Surgical','Paediatrics','Maternity','Emergency'],datasets:[{label:'Errors',data:[12,10,8,7,5,5],backgroundColor:['#1D9E75','#E24B4A','#378ADD','#EF9F27','#7F77DD','#9FE1CB'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+</script>
+</body>
+</html>
